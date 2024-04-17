@@ -1,29 +1,28 @@
 ////////////////// Game //////////////////
 Game=function(){
-    this.xsize=6
-    this.ysize=6
+    this.xsize=1
+    this.ysize=1
     this.endImmediately=true
 }
 
+Game.prototype.MODELS=['HEPTAGONAL']
+Game.prototype.HEPTAGONAL=Heptagonal
+
+Game.prototype.DIFFUSION=4
+
+Game.prototype.BLANK=0
+Game.prototype.CRITICAL=1
+Game.prototype.CHESS=2
+Game.prototype.BAN=3
+
 Game.prototype.POINT=1
-Game.prototype.EDGE=0
 Game.prototype.SCORE=2
-Game.prototype.EDGE_USED=-1
 Game.prototype.SCORE_PLAYER=[4,8]
 
 Game.prototype.initMap=function(){
     var game=this
-    game.winScore=game.ysize*game.xsize
-    game.winScore=game.winScore%2?(game.winScore+1)/2:game.winScore/2
-    game.map=[]
-    for(var jj=0;jj<2*game.ysize+1;jj++){
-        var aa=[]
-        for(var ii=0;ii<2*game.xsize+1;ii++){
-            aa.push((1-(ii+jj)%2)<<((ii%2)*(jj%2)))
-            //格点1, 边0, 得分区域2
-        }
-        game.map.push(aa)
-    }
+    game.model=game[game.MODELS[game.xsize-1]]
+    game.map=Array.from(game.model).map(v=>game.BLANK)
     game.history=[]
 }
 Game.prototype.setSize=function(xsize,ysize){
@@ -32,12 +31,12 @@ Game.prototype.setSize=function(xsize,ysize){
     if(ysize)game.ysize=ysize;
     game.initMap()
 }
-Game.prototype.xy=function(x,y,value){
+Game.prototype.xy=function(xy,value){
     var game=this
-    if(x<0||x>2*game.xsize)return 'out range';
-    if(y<0||y>2*game.ysize)return 'out range';
-    if(value==null)return game.map[y][x];
-    game.map[y][x]=value
+    if(value==null)return game.map[xy];
+    var oldValue=game.map[xy]
+    game.map[xy]=value
+    game.changeChess.forEach(function(f){f(xy,oldValue,value)})
 }
 Game.prototype.initPlayer=function(){
     var game=this
@@ -59,57 +58,93 @@ Game.prototype.firstStep=function(callback){
     return game
 }
 
-Game.prototype.putxy=function(x,y,callback){
+Game.prototype.CACHE={
+    UNVISITED:0,
+    VISITED:1,
+}
+Game.prototype.connectingCount=function(xy,cacheMap){
+    var game=this
+    if (cacheMap==null) {
+        cacheMap=Array.from(game.model).map(v=>game.CACHE.UNVISITED)
+    }
+    var count=1
+    var queue=[xy]
+    cacheMap[xy]=game.CACHE.VISITED
+    while (queue.length) {
+        var cxy=queue.pop()
+        game.model.link[cxy].forEach(xyi=>{
+            if (cacheMap[xyi]===game.CACHE.UNVISITED) {
+                cacheMap[xyi]=game.CACHE.VISITED
+                if (game.xy(xyi)===game.CHESS) {
+                    count+=1
+                    queue.push(xyi)
+                }
+            }
+        })
+    }
+    return [count,cacheMap]
+}
+Game.prototype.test1=function () {
+    var game=this
+    game.map=[0, 2, 0, 0, 0, 2, 2, 0, 2, 0, 0, 0, 0, 0, 0, 0, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+    console.log(game.connectingCount(0))
+    console.log(game.connectingCount(1))
+    console.log(game.connectingCount(2))
+}
+Game.prototype.putxy=function(xy,callback){
     var game=this
     if(game.lock){
         if(callback)callback(null,'lock');
         return 'lock';
     }
-    if(game.xy(x,y)!==game.EDGE){
+    var currentXY=game.xy(xy)
+    if(currentXY!==game.BLANK && currentXY!==game.CRITICAL){
         if(callback)callback(null,'Invalid click');
         return 'Invalid click';
     }
-    game.xy(x,y,game.EDGE_USED)
-    game.history.push([x,y,game.playerId])
-    // game.changeEdge
-    game.changeEdge.forEach(function(f){f(x,y)})
-    var directions=[{x:0,y:-1},{x:1,y:0},{x:0,y:1},{x:-1,y:0}]
-    var score=false
-    for(var ii=0,d;d=directions[ii];ii++){
-        var xx=x+d.x, yy=y+d.y
-        if(game.xy(xx,yy)===game.SCORE){
-            var complete = true
-            for(var jj=0,dd;dd=directions[jj];jj++){
-                var xxx=xx+dd.x, yyy=yy+dd.y
-                complete = complete && (game.xy(xxx,yyy)===game.EDGE_USED)
-            }
-            if(complete){
-                score=true
-                game.xy(xx,yy,game.SCORE_PLAYER[game.playerId])
-                game.player[game.playerId].score++
-                // game.changeScore
-                game.changeScore.forEach(function(f){f(xx,yy,game.playerId,game.player[game.playerId].score)})
-                if(game.player[game.playerId].score>=game.winScore){
-                    var endnow=true
-                    if(game.winnerId==null){
-                        game.winnerId=game.playerId
-                    }
-                    if(!game.endImmediately){
-                        endnow=(game.player[0].score+game.player[0].score==game.ysize*game.xsize)
-                    }
-                    if(endnow){
-                        game.win.forEach(function(f){f(game.winnerId)})
-                        if(callback)callback('win',null);
-                        return 'win'+game.playerId
+    game.xy(xy,game.CHESS)
+    if (currentXY===game.BLANK) {
+        //数连接个数然后扩大一圈的检查有没有临界
+        var [count,cacheMap]=game.connectingCount(xy)
+        cacheMap.forEach((v,i)=>{
+            if (v===game.CACHE.VISITED && game.xy(i)===game.BLANK) {
+                if (count==game.DIFFUSION-1) {
+                    game.xy(i,game.CRITICAL)
+                } else{
+                    // var ncount=game.connectingCount(i,Array.from(cacheMap))[0]
+                    var ncount=game.connectingCount(i)[0]
+                    if (ncount>=game.DIFFUSION) {
+                        game.xy(i,game.CRITICAL)
                     }
                 }
             }
-        }
+        })
+
+    } else { // currentXY===game.CRITICAL
+        //一圈改成ban
+        var [count,cacheMap]=game.connectingCount(xy)
+        cacheMap.forEach((v,i)=>{
+            if (v===game.CACHE.VISITED && (game.xy(i)===game.BLANK || game.xy(i)===game.CRITICAL)) {
+                game.xy(i,game.BAN)
+            }
+        })
     }
-    if(score){
+    game.history.push([xy,game.playerId])
+    // game.changeHistory
+    game.changeHistory.forEach(function(f){f(xy)})
+
+    // 游戏是否结束的检查
+    if(game.map.filter(v=>v===game.BLANK || v===game.CRITICAL).length===0){
+        game.winnerId=currentXY===game.BLANK?game.playerId:1-game.playerId
+        game.win.forEach(function(f){f(game.winnerId)})
+        if(callback)callback('win',null);
+        return 'win'+game.playerId
+    }
+
+    if(currentXY===game.CRITICAL){
         game.player[game.playerId].continueTurn(callback)
         return 'continueTurn'
-    } else {
+    } else { // currentXY===game.BLANK
         game.playerId=1-game.playerId
         game.changePlayer.forEach(function(f){f(game.playerId)})
         game.player[game.playerId].changeTurn(callback)
@@ -123,8 +158,9 @@ Game.prototype.init=function(xsize,ysize){
     game.initPlayer()
     game.winnerId=null
     
-    game.changeEdge=[]//function(x,y){}
-    game.changeScore=[]//function(x,y,playerId,score){}
+    game.changeHistory=[]//function(xy){}
+    game.changeChess=[]//function(xy,from,to){}
+    game.changeScore=[]//function(xy,playerId,score){}
     game.changePlayer=[]//function(playerId){}
     game.win=[]//function(playerId){}
 
@@ -137,39 +173,61 @@ Game.prototype.init=function(xsize,ysize){
 
 ////////////////// gameview //////////////////
 gameview={}
-
+gameview.class={
+    [Game.prototype.BLANK]:'blank',
+    [Game.prototype.CRITICAL]:'critical',
+    [Game.prototype.CHESS]:'chess',
+    [Game.prototype.BAN]:'ban',
+}
 gameview.playerColor=['#fbb','#bbf']
 
 gameview.initTable=function(){
     var game=gameview.game
-    var hstr=''
-    for(var jj=0;jj<2*game.ysize+1;jj++){
-        hstr+='<tr>'
-        for(var ii=0;ii<2*game.xsize+1;ii++){
-            hstr+=['<td><div title="',ii,',',jj,'"></div></td>'].join('')
-        }
-        hstr+='</tr>\n'
+    var svg = gameview.discsvg;
+    function disc(p1, size, pid) {
+        var path = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+
+        path.setAttribute("cx", p1.x);
+        path.setAttribute("cy", p1.y);
+        path.setAttribute("r", size);
+        // path.setAttribute("fill", "#d0000033");
+        // path.setAttribute("fill", "#88888833");
+        path.setAttribute("stroke", "none");
+        path.setAttribute("pid", pid);
+        path.setAttribute("class", `place blank p${pid}`);
+
+        svg.appendChild(path);
     }
-    gameview.gamemap.innerHTML=hstr
+    robj=game.model
+    svg.innerHTML=''
+    if(1)Array.from(robj).forEach((v,ii) => {
+        var [x1,y1]=robj['center'][ii]
+        disc({ x: x1, y: y1 }, robj['size'][ii], ii)
+    });
+    // document.querySelector('.p1').classList.add('ban')
+    // document.querySelector('.p1').classList.remove('blank')
+
+    // document.querySelector('.p5').classList.add('chess')
+    // document.querySelector('.p5').classList.remove('blank')
+
+    // document.querySelector('.p3').classList.add('critical')
+
+    // document.querySelector('.p4').classList.add('lastaction')
 }
-gameview.xy=function(x,y){return gameview.gamemap.children[y].children[x]}
+gameview.xy=function(xy){return gameview.discsvg.children[xy]}
 gameview.printtip=function(tip){
     gameview.gametip.innerText=tip
 }
 gameview.listenTable=function(){
     setTimeout(function(){
         var game=gameview.game
-        for(var jj=0;jj<2*game.ysize+1;jj++){
-            for(var ii=0;ii<2*game.xsize+1;ii++){
-                if((ii+jj)%2===0)continue;
-                (function(ii,jj){
-                    gameview.xy(ii,jj).children[0].onclick=function(){
-                        game.putxy(ii,jj)
-                    }
-                })(ii,jj)
+        Array.from(game.model).forEach((v,ii) => {
+            gameview.xy(ii).onclick=function(){
+                console.log('click xy',ii)
+                game.putxy(ii)
             }
-        }
-    },100)
+        })
+    },0)
 }
 gameview.buildTable=function(){
     gameview.initTable()
@@ -178,13 +236,17 @@ gameview.buildTable=function(){
 gameview.listenGame=function(){
     var game=gameview.game
     var lastedge = null
-    game.changeEdge.push(function(x,y){
-        if(lastedge)gameview.xy(lastedge[0],lastedge[1]).children[0].style.background='#ccc'
-        gameview.xy(x,y).children[0].style.background='#888'
-        lastedge=[x,y]
+    game.changeHistory.push(function(xy){
+        if(lastedge)gameview.xy(lastedge[0]).classList.remove('lastaction')
+        gameview.xy(xy).classList.add('lastaction')
+        lastedge=[xy]
     })
-    game.changeScore.push(function(x,y,playerId,score){
-        gameview.xy(x,y).children[0].style.background=gameview.playerColor[playerId]
+    game.changeChess.push(function(xy,oldValue,value){
+        if (oldValue===value) return;
+        gameview.xy(xy).classList.remove(gameview.class[oldValue])
+        gameview.xy(xy).classList.add(gameview.class[value])
+    })
+    game.changeScore.push(function(playerId,score){
         gameview.gameinfo.children[playerId].children[0].children[0].innerHTML=score
     })
     game.changePlayer.push(function(playerId){
@@ -204,7 +266,7 @@ gameview.listenGame=function(){
     })
 }
 gameview.init=function(game,hasInited){
-    gameview.gamemap = document.getElementById('gamemap')
+    gameview.discsvg = document.querySelector('.discsvg')
     gameview.gameinfo = document.getElementById('gameinfo')
     gameview.gametip = document.getElementById('gametip')
     gameview.x = document.getElementById('gx')
@@ -252,9 +314,9 @@ ReplayController.prototype.replay=function(step,time,callback){
     if(step=='last'){
         if(rc.game.history.length>=2){
             var index=rc.game.history.length-2
-            var lastplayer=rc.game.history[rc.game.history.length-1][2]
+            var lastplayer=rc.game.history[rc.game.history.length-1][1]
             while(index>0){
-                if(rc.game.history[index][2]!==lastplayer)break;
+                if(rc.game.history[index][1]!==lastplayer)break;
                 index--;
             }
             step=index
@@ -276,7 +338,7 @@ ReplayController.prototype.replay=function(step,time,callback){
             nowstep=newgame.history.length
             if(nowstep<step){
                 newgame.lock=0
-                newgame.putxy(rc.game.history[nowstep][0],rc.game.history[nowstep][1])
+                newgame.putxy(rc.game.history[nowstep][0])
             } else {
                 rc.player1.remove()
                 rc.player2.remove()
@@ -305,4 +367,4 @@ ReplayController.prototype.replay=function(step,time,callback){
     
     return newgame
 }
-//gamea=JSON.parse( JSON.stringify(game));game=new ReplayController().init(gamea,gameview).replay('last',120,null).firstStep()
+//new ReplayController().init(gameview.game,gameview).replay('last',120,null).firstStep()

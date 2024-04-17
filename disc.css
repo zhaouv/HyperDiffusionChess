@@ -1,0 +1,23 @@
+div.disc {
+    background-image: url('./images/tiling.png');
+    background-position: 0px 0px;
+    background-size: 500px 500px; 
+    width: 500px; 
+    height: 500px; 
+}
+.blank:hover{
+    fill: #00d00055
+}
+.blank {
+    fill: #88888855
+}
+.chess {
+    /* fill: #0000b055, */
+    fill: #000000dd
+}
+.ban {
+    fill: #997777dd
+}
+.critical {
+    fill: #d0d00077
+}

@@ -43,13 +43,13 @@ GameData.prototype.count=function(x,y,number){
     return count
 }
 // game.POINT=1   =>   -1000
-// game.EDGE=0   =>   [1,10,100] [立刻得分,不得分,差一手得分]
+// game.BLANK=0   =>   [1,10,100] [立刻得分,不得分,差一手得分]
 // game.SCORE=2   =>   [10000,10001,10002,10003] 周围边的完成数
-// game.EDGE_USED=-1   =>   -100000
+// game.CHESS=-1   =>   -100000
 // game.SCORE_PLAYER=[4,8]   =>   10004 周围边的完成数
 // ↓
 GameData.prototype.POINT=-888
-GameData.prototype.EDGE_USED=-999
+GameData.prototype.CHESS=-999
 GameData.prototype.EDGE_NOW=1111
 GameData.prototype.EDGE_WILL=2222
 GameData.prototype.EDGE_NOT=3333
@@ -59,7 +59,7 @@ GameData.prototype.SCORE_2=1002
 GameData.prototype.SCORE_3=1003
 GameData.prototype.SCORE_4=1004
 // game.POINT              点
-// game.EDGE_USED          用过的边
+// game.CHESS          用过的边
 // game.EDGE_NOW           立刻得分的边
 // game.EDGE_WILL          下完后下一笔能立刻得分的边
 // game.EDGE_NOT           下完双方不得分的边
@@ -85,7 +85,7 @@ GameData.prototype.fromGame=function(game){
     }
     _game.map=_game.cloneObj(game.map)
     _game.edgeCount={}
-    _game.edgeCount[_game.EDGE_USED]=0
+    _game.edgeCount[_game.CHESS]=0
     _game.edgeCount[_game.EDGE_NOW]=0
     _game.edgeCount[_game.EDGE_WILL]=0
     _game.edgeCount[_game.EDGE_NOT]=0
@@ -97,7 +97,7 @@ GameData.prototype.fromGame=function(game){
     _game.scoreCount[_game.SCORE_4]=0
     for(var jj=1;jj<2*game.ysize+1;jj+=2){
         for(var ii=1;ii<2*game.xsize+1;ii+=2){
-            var thiscount=_game.SCORE_0+_game.count(ii,jj,game.EDGE_USED)
+            var thiscount=_game.SCORE_0+_game.count(ii,jj,game.CHESS)
             _game.xy(ii,jj,thiscount)
             _game.scoreCount[thiscount]++
         }
@@ -107,9 +107,9 @@ GameData.prototype.fromGame=function(game){
             if((ii+jj)%2===0){
                 if(ii%2===0)_game.xy(ii,jj,_game.POINT);
             } else {
-                if(_game.xy(ii,jj)===game.EDGE_USED){
-                    _game.xy(ii,jj,_game.EDGE_USED)
-                    _game.edgeCount[_game.EDGE_USED]++
+                if(_game.xy(ii,jj)===game.CHESS){
+                    _game.xy(ii,jj,_game.CHESS)
+                    _game.edgeCount[_game.CHESS]++
                 } else if(_game.count(ii,jj,_game.SCORE_3)){
                     _game.xy(ii,jj,_game.EDGE_NOW)
                     _game.edgeCount[_game.EDGE_NOW]++
@@ -228,7 +228,7 @@ GameData.prototype.initConnectedRegion=function(){
         var stack=[]
         for(var ii=0,d;d=directions[ii];ii++){
             var x=now.x+d.x*2, y=now.y+d.y*2
-            if(game.areaxy(x,y)==index && game.xy(now.x+d.x,now.y+d.y)!==game.EDGE_USED)stack.push({'x':x,'y':y})
+            if(game.areaxy(x,y)==index && game.xy(now.x+d.x,now.y+d.y)!==game.CHESS)stack.push({'x':x,'y':y})
         }
         var visited = eval('['+Array(game.ysize+1).join('['+Array(game.xsize+1).join('false,')+'],')+']') // ysize*xsize的false
         var v=function(x,y,value){
@@ -273,7 +273,7 @@ GameData.prototype.areaxy=function(x,y,value){
     game.area[y>>1][x>>1]=~~value
 }
 // game.POINT              点
-// game.EDGE_USED          用过的边
+// game.CHESS          用过的边
 // game.EDGE_NOW           立刻得分的边
 // game.EDGE_WILL          下完后下一笔能立刻得分的边
 // game.EDGE_NOT           下完双方不得分的边
@@ -285,9 +285,9 @@ GameData.prototype.areaxy=function(x,y,value){
 GameData.prototype.putxy=function(x,y){
     var game=this
     var edgebefore=game.xy(x,y)
-    game.xy(x,y,game.EDGE_USED)
+    game.xy(x,y,game.CHESS)
     game.edgeCount[edgebefore]--
-    game.edgeCount[game.EDGE_USED]++
+    game.edgeCount[game.CHESS]++
     var directions=[{x:0,y:-1},{x:1,y:0},{x:0,y:1},{x:-1,y:0}]
     var score=false
     var temp=[]
@@ -317,7 +317,7 @@ GameData.prototype.putxy=function(x,y){
             var links=[]
             for(var jj=0,dd;dd=directions[jj];jj++){
                 var xxx=xx+dd.x, yyy=yy+dd.y
-                if(game.xy(xxx,yyy)===game.EDGE_USED)continue;
+                if(game.xy(xxx,yyy)===game.CHESS)continue;
                 var index_next=game.areaxy(xx+2*dd.x,yy+2*dd.y)
                 links.push({
                     //directionindex:jj,
@@ -539,7 +539,7 @@ GameData.prototype.getOneEdgeFromRegion=function(region){
     var directions=[{x:0,y:-1},{x:1,y:0},{x:0,y:1},{x:-1,y:0}]
     for(var ii=0,d;d=directions[ii];ii++){
         var xx=stack[p1].x+d.x, yy=stack[p1].y+d.y
-        if(gameData.xy(xx,yy)!==gameData.EDGE_USED)return {'x':xx,'y':yy};
+        if(gameData.xy(xx,yy)!==gameData.CHESS)return {'x':xx,'y':yy};
     }
 }
 GameData.prototype.getOneEdgeFromRegionIndex=function(regionIndex){

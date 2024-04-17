@@ -2,9 +2,57 @@
 <html>
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
-    <title>点格棋</title>
+    <title>Hyper Diffusion</title>
 <!-- css START -->
 <style>
+    div.disc {
+        background-image: url('./images/tiling.png');
+        background-position: 0px 0px;
+        background-size: 400px 400px; 
+        width: 400px; 
+        height: 400px; 
+    }
+    .blank:hover{
+        fill: #00d00055 !important;
+    }
+    @keyframes gradientAnimation {
+        0% {
+            fill: #88888888;
+        }
+        60% {
+            /* fill: #888888aa; */
+            fill: #768373aa;
+        }
+        100% {
+            fill: #88888888;
+        }
+    }
+    .blank {
+        animation: gradientAnimation 2s infinite;
+        /* fill: #88888888 */
+    }
+    .chess {
+        /* fill: #0000b055, */
+        fill: #000000dd
+    }
+    .ban {
+        fill: #997777dd
+    }
+    .critical:hover {
+        fill: #50d00077
+    }
+    .critical {
+        fill: #d0d00077
+    }
+    .lastaction {
+        stroke: green;
+        stroke-width: 0.01;
+    }
+    body {
+        background-color: #121212;
+        /* color: white; */
+    }
+
     a {text-decoration:none;color:blue;}
 
     textarea,input[type=button],#result,input[type=text],select {
@@ -218,14 +266,9 @@
 
 <!-- content START -->
 
-<div class="gametable">
-    <table>
-        <tbody id="gamemap">
-<tr><td>aaa</td><td>bbb</td><td>ccc</td></tr>
-<tr><td>aaa</td><td>bbb</td><td>ccc</td></tr>
-<tr><td>aaa</td><td>bbb</td><td>ccc</td></tr>
-        </tbody>
-    </table>
+<div class="disc">
+    <svg class="discsvg" xmlns="http://www.w3.org/2000/svg" viewBox="-1.00 -1.00 2.0 2.0" style="width:400px;height:400px">
+    </svg>
 </div>
 
 <div id="gameinfo">
@@ -244,7 +287,7 @@
 <div>
     <span>对手: </span>
     <select id="changePlayerSelect">
-        <option value="0">中等AI</option>
+        <!-- <option value="0">中等AI</option> -->
         <!-- <option value="1">简单AI</option> -->
         <option value="2">左右互搏</option>
         <option value="3">网络对战</option>
@@ -255,12 +298,12 @@
     <input type="button" value="后手" onclick="resetgame()">
     <span>room: </span><input type="text" id="roomnum" style="width:4em;" onchange="setroom(~~roomnum.value)" value="0">
     <br>
-    <input type="text" id="gx" value="6">
+    <input type="text" id="gx" value="1">
     <br>
-    <input type="text" id="gy" value="6">
+    <input type="text" id="gy" value="1" style="display: none;">
 
-    <p>点格棋: <br>双方轮流画线, 当一个格子填满时, 该玩家得分并继续走一步, 先占一半格子(向上取整)的玩家获胜<p>
-    <p>开源项目地址: <a href="https://github.com/zhaouv/pencil">https://github.com/zhaouv/pencil</a></p>
+    <p>Hyper Diffusion: <br>双方轮流放置棋子, 不能放置在4个以及以上的相邻的棋子旁边. 当放置的棋子构成多于等于4个棋子相邻时, 该玩家必须继续放置棋子. 须放置却没有空位置的玩家输.<p>
+    <!-- <p>开源项目地址: <a href="https://github.com/zhaouv/hyperDiffusion">https://github.com/zhaouv/hyperDiffusion</a></p> -->
 </div>
 <!-- content END -->
 
@@ -270,17 +313,17 @@
 document.getElementsByClassName('middletop')[0].style.marginTop=~~(innerHeight/10)+'px';
 </script>
 <script src="./socket.io/socket.io.js"></script>
+<script src="./data.js"></script>
 <script src="./game.js"></script>
 <script src="./gamedata.js"></script>
 <script src="./player.js"></script>
-<script src="./treeSearch.js"></script>
 <script>
 ////////////////// changePlayerSelect //////////////////
 var changePlayerSelect = document.getElementById('changePlayerSelect')
 var laststepbutton = document.getElementById('laststepbutton')
 changePlayerSelect.onchange=function(){
     playerIndex=~~changePlayerSelect.value
-    // if(playerIndex===3 &&　window.location.href.indexOf(':5050')===-1)window.location='http://zhaouv.net/pencil';
+    // if(playerIndex===3 &&　window.location.href.indexOf(':13086')===-1)window.location='http://zhaouv.net/hyperDiffusion';
     laststepbutton.style.display=playerIndex===3?'none':''
     player2.remove()
     var game=gameview.game

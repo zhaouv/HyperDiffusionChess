@@ -68,9 +68,9 @@ NetworkPlayer.prototype.bind=function(playerId,callback){
     new GamePlayer().bind.call(this,playerId,callback)
     this.game.lock=1
     var thisplayer = this
-    thisplayer.emitPut=function(x,y){
+    thisplayer.emitPut=function(xy){
         if(thisplayer.game.playerId===thisplayer.playerId)return;
-        thisplayer.socket.emit('put', thisplayer.room, [x,y,thisplayer.playerId]);
+        thisplayer.socket.emit('put', thisplayer.room, [xy,thisplayer.playerId]);
     }
     thisplayer.restart=function(){
         //重置游戏并交换先后手
@@ -88,7 +88,7 @@ NetworkPlayer.prototype.bind=function(playerId,callback){
             thisplayer.socket.emit('ready', thisplayer.room)
         },1000)
     }
-    this.game.changeEdge.push(thisplayer.emitPut)
+    this.game.changeHistory.push(thisplayer.emitPut)
     if(this.gameview){
         while(this.game.win.length>2)this.game.win.pop();
     }
@@ -102,8 +102,8 @@ NetworkPlayer.prototype.bind=function(playerId,callback){
 }
 NetworkPlayer.prototype.remove=function(){
     new GamePlayer().remove.call(this)
-    var index = this.game.changeEdge.indexOf(this.emitPut)
-    this.game.changeEdge.splice(index,1)
+    var index = this.game.changeHistory.indexOf(this.emitPut)
+    this.game.changeHistory.splice(index,1)
     this.emitPut=null
     var index = this.game.win.indexOf(this.restart)
     this.game.win.splice(index,1)
@@ -123,8 +123,8 @@ NetworkPlayer.prototype.printtip=function(tip){
 }
 
 NetworkPlayer.prototype.initSocket=function(){
-    var urlstr=':5050/pencil'
-    // http://pencilonline.top/index.html?url=https://h5mota.com:5050/pencil
+    var urlstr=':13086/hyperDiffusion'
+    // http://pencilonline.top/index.html?url=https://h5mota.com:13086/hyperDiffusion
     if(this.gameview && this.gameview.urlstr)urlstr=this.gameview.urlstr;
     var socket = io(urlstr)
     this.socket=socket
@@ -147,9 +147,9 @@ NetworkPlayer.prototype.initSocket=function(){
     var endgame = function(){
         thisplayer.remove()
     }
-    var put_down = function(x, y, type){
+    var put_down = function(xy, type){
         thisplayer.game.lock=0
-        thisplayer.game.putxy(x,y)
+        thisplayer.game.putxy(xy)
     }
 
     // start game
@@ -199,8 +199,8 @@ NetworkPlayer.prototype.initSocket=function(){
     })
 
     socket.on('put', function(data) {
-        if (data[2]!=thisplayer.playerId && thisplayer.playerId>=0) {
-            put_down(data[0], data[1], data[2])
+        if (data[1]!=thisplayer.playerId && thisplayer.playerId>=0) {
+            put_down(data[0], data[1])
         }
     })
 
@@ -241,21 +241,21 @@ AIPlayer.prototype.init=function(game){
 AIPlayer.prototype.bind=function(playerId,callback){
     new GamePlayer().bind.call(this,playerId,callback)
     var thisplayer = this
-    thisplayer.emitPut=function(x,y){
-        thisplayer.gameData.putxy(x,y)
+    thisplayer.emitPut=function(xy){
+        thisplayer.gameData.putxy(xy)
     }
     thisplayer.emitWin=function(){
     }
-    this.game.changeEdge.push(thisplayer.emitPut)
+    this.game.changeHistory.push(thisplayer.emitPut)
     this.game.win.push(thisplayer.emitWin)
     return this
 }
 AIPlayer.prototype.remove=function(){
     new GamePlayer().remove.call(this)
-    var index = this.game.changeEdge.indexOf(this.emitPut)
-    this.game.changeEdge.splice(index,1)
+    var index = this.game.changeHistory.indexOf(this.emitPut)
+    this.game.changeHistory.splice(index,1)
     this.emitPut=null
-    var index = this.game.changeEdge.indexOf(this.emitWin)
+    var index = this.game.changeHistory.indexOf(this.emitWin)
     this.game.win.splice(index,1)
     this.emitWin=null
 }
@@ -348,78 +348,4 @@ OffensiveKeeperAI.prototype = Object.create(GreedyRandomAI.prototype)
 OffensiveKeeperAI.prototype.constructor = OffensiveKeeperAI
 
 OffensiveKeeperAI.prototype.tryKeepOffensive=function(){
-    var gameData=this.gameData
-    var eatOne = gameData.getOneEdgeFromRegionIndex(gameData.scoreRegion[0]) // >随便吃一块时的值
-
-    // 最后一块直接吃掉
-    if(gameData.regionNum==1) return eatOne;
-
-    // >按照大小分类
-    var regions={};
-    for(var ii in gameData.connectedRegion){
-        var region = gameData.connectedRegion[ii]
-        if(!region)continue;
-        var len = region.block.length
-        regions[len]=regions[len]||[]
-        regions[len].push(region.index)
-    }
-
-    // 有得分单块
-    if(regions[1]){
-        for(var ii=0;ii<regions[1].length;ii++){
-            var regionIndex=regions[1][ii];
-            if(gameData.scoreRegion.indexOf(regionIndex)!==-1)return gameData.getOneEdgeFromRegionIndex(regionIndex);
-        }
-    }
-
-    // 有得分双块且还有别的能得分的块
-    if(regions[2] && gameData.scoreRegion.length>1){
-        for(var ii=0;ii<regions[2].length;ii++){
-            var regionIndex=regions[2][ii];
-            if(gameData.scoreRegion.indexOf(regionIndex)!==-1)return gameData.getOneEdgeFromRegionIndex(regionIndex);
-        }
-    }
-
-    // 多于两个块按先吃环的顺序吃掉一个
-    if(gameData.scoreRegion.length>2){
-        for(var ii in gameData.scoreRegion){
-            var region = gameData.connectedRegion[gameData.scoreRegion[ii]]
-            if(region.isRing)return gameData.getOneEdgeFromRegion(region);
-        }
-        return eatOne;
-    }
-
-    // 两个块且第二个是环
-    if(gameData.scoreRegion.length===2 && gameData.connectedRegion[gameData.scoreRegion[1]].isRing)return gameData.getOneEdgeFromRegionIndex(gameData.scoreRegion[1]);
-
-    // 两个块
-    if(gameData.scoreRegion.length===2)return eatOne;
-    
-    // >此时只有一个块了
-    var region=gameData.connectedRegion[gameData.scoreRegion[0]];
-
-    // 长度不是4的环
-    if(region.isRing && region.block.length!==4)return eatOne;
-
-    // 长度不是2的长条
-    if(!region.isRing && region.block.length!==2)return eatOne;
-
-    // >让分数拿先手
-    var stack=region.block;
-    // 长度是4的环
-    if(region.block.length===4) return {'x':(stack[1].x+stack[2].x)/2,'y':(stack[1].y+stack[2].y)/2};
-    // 长度是2的长条
-    var p1=1
-    if(gameData.xy(stack[0].x,stack[0].y)!==gameData.SCORE_3){
-        p1=0
-    }
-    var directions=[{x:0,y:-1},{x:1,y:0},{x:0,y:1},{x:-1,y:0}]
-    for(var ii=0,d;d=directions[ii];ii++){
-        var xx=stack[p1].x+d.x, yy=stack[p1].y+d.y
-        var xxx=stack[p1].x+2*d.x, yyy=stack[p1].y+2*d.y
-        if(gameData.xy(xx,yy)!==gameData.EDGE_USED && gameData.xy(xxx,yyy)=='out range')return {'x':xx,'y':yy};
-    }
-
-    console.log('bug:理论上不应该走到这里')
-    return eatOne;
 }
