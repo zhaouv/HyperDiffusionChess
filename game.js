@@ -5,8 +5,9 @@ Game=function(){
     this.endImmediately=true
 }
 
-Game.prototype.MODELS=['HEPTAGONAL']
+Game.prototype.MODELS=['HEPTAGONAL','SQUARE']
 Game.prototype.HEPTAGONAL=Heptagonal
+Game.prototype.SQUARE=Square
 
 Game.prototype.DIFFUSION=4
 

@@ -7,6 +7,7 @@
 <style>
     div.disc {
         background-image: url('./images/tiling.png');
+        /* background-image: url('./images/go9.png'); */
         background-position: 0px 0px;
         background-size: 400px 400px; 
         width: 400px; 
@@ -298,7 +299,11 @@
     <input type="button" value="后手" onclick="resetgame()">
     <span>room: </span><input type="text" id="roomnum" style="width:4em;" onchange="setroom(~~roomnum.value)" value="0">
     <br>
-    <input type="text" id="gx" value="1">
+    <!-- <input type="text" id="gx" value="2"> -->
+    <select id="gx">
+        <option value="1">Heptagonal</option>
+        <option value="2">Square</option>
+    </select>
     <br>
     <input type="text" id="gy" value="1" style="display: none;">
 
