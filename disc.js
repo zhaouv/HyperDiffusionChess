@@ -4,7 +4,8 @@ async function fetchData(datafile) {
 }
 
 // const MODEL='HEPTAGONAL'
-const MODEL='Square'
+// const MODEL='Square'
+const MODEL='Hexagonal'
 
 fetchData('Heptagonal.json')
 .then(robj => {
@@ -87,7 +88,7 @@ var go9={
     "size": [],
 }
 
-Array.from({length:81}).forEach((v,i)=>{
+Array.from(go9).forEach((v,i)=>{
     let x=i%9
     let y=~~(i/9)
     const padl=0.14
@@ -113,6 +114,65 @@ Array.from({length:81}).forEach((v,i)=>{
 if(MODEL=='Square'){
     let robj=go9
     document.querySelector('.disc').style.backgroundImage="url('./images/go9.png')";
+
+    if(1)Array.from(robj).forEach((v,ii) => {
+        var [x1,y1]=robj['center'][ii]
+        disc({ x: x1, y: y1 }, robj['size'][ii], ii)
+    });
+    
+    document.querySelector('.p1').classList.add('ban')
+    document.querySelector('.p1').classList.remove('blank')
+
+    document.querySelector('.p5').classList.add('chess')
+    document.querySelector('.p5').classList.remove('blank')
+    
+    document.querySelector('.p3').classList.add('critical')
+}
+
+var hex6={
+    "length": 91,
+    "center": [[0,0]],
+    "parent": [[0]],
+    "link": [[1,2,3,4,5,6]],
+    "size": [[0.6/7]],
+}
+
+Array.from(hex6).forEach((v,i)=>{
+    if (i===0) {
+        return
+    }
+    let layerNumber=[1,6,12,18,24,30,36,42,48]
+    let layerIndex=0
+    let layerPage=0
+    let layerSum=0
+    while ( layerSum <= i) {
+        layerSum+=layerNumber[layerIndex]
+        layerIndex++
+    }
+    layerIndex--
+    layerSum-=layerNumber[layerIndex]
+    layerPage=~~((i-layerSum)/(layerNumber[layerIndex]/6))
+    layerPageIndex=(i-layerSum)%(layerNumber[layerIndex]/6)
+    // console.log(i,layerIndex,layerSum,layerPage,layerPageIndex)
+    const unit=0.18
+    hex6.center.push([
+        unit*(layerIndex*Math.cos(layerPage*60/180*Math.PI)+layerPageIndex*Math.cos((layerPage*60+120)/180*Math.PI)),
+        -unit*(layerIndex*Math.sin(layerPage*60/180*Math.PI)+layerPageIndex*Math.sin((layerPage*60+120)/180*Math.PI))
+    ])
+    // todo
+    hex6.parent.push(0)
+
+    hex6.size.push(hex6.size[0])
+    hex6.link.push([0])
+    if (layerPage===0) {
+
+    } else {
+        
+    }
+})
+
+if(MODEL=='Hexagonal'){
+    let robj=hex6
 
     if(1)Array.from(robj).forEach((v,ii) => {
         var [x1,y1]=robj['center'][ii]
