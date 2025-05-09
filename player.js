@@ -268,7 +268,7 @@ AIPlayer.prototype.where=function(){
             choice.push(ii);
         }
     }
-    return choice[~~((choice.length-1)*Math.random())]
+    return choice[~~(choice.length*Math.random())]
 }
 AIPlayer.prototype.changeTurn=function(){
     var thisplayer = this
@@ -286,7 +286,7 @@ AIPlayer.prototype.continueTurn=function(){
     setTimeout(function(){
         thisplayer.game.lock=0
         thisplayer.game.putxy(where)
-    },120)
+    },500)
 }
 
 ////////////////// GreedyRandomAI //////////////////
@@ -306,6 +306,30 @@ GreedyRandomAI.prototype.where=function(){
             if(game.xy(ii)===game.CRITICAL)return ii;
         }
     }
-    return choice[~~((choice.length-1)*Math.random())]
+    return choice[~~(choice.length*Math.random())]
 }
 
+
+////////////////// MCAI //////////////////
+MCAI=function(){
+    AIPlayer.call(this)
+    return this
+}
+MCAI.prototype = Object.create(AIPlayer.prototype)
+MCAI.prototype.constructor = MCAI
+MCAI.prototype.where=function(){
+    var game=this.game
+    var choice=[];
+    for(var ii=game.map.length-1;ii>0;ii--){
+        if([game.BLANK,game.CRITICAL].indexOf(game.xy(ii))!==-1){
+            choice.push(ii);
+        }
+    }
+    if (choice.length>=20) {
+        return choice[~~(choice.length*Math.random())]
+    }
+    if (choice.length>=10) {
+        return this.gameData.choiceByRandomWinRate(50)
+    }
+    return this.gameData.choiceByRandomWinRate(100)
+}

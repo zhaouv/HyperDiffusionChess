@@ -2,7 +2,6 @@
 Game=function(){
     this.xsize=1
     this.ysize=1
-    this.endImmediately=true
 }
 
 Game.prototype.MODELS=['HEPTAGONAL','SQUARE']

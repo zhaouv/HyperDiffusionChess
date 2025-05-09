@@ -288,8 +288,8 @@
 <div>
     <span>对手: </span>
     <select id="changePlayerSelect">
-        <option value="0">随机人机</option>
-        <option value="1">贪婪人机</option>
+        <option value="0">中等AI</option>
+        <option value="1">简单AI</option>
         <option value="2">左右互搏</option>
         <option value="3">网络对战</option>
     </select>
@@ -335,9 +335,13 @@ changePlayerSelect.onchange=function(){
     player2 = new playerList[playerIndex]().init(game,gameview).bind(first2)
     game.firstStep()
 }
-
+var gx = document.getElementById('gx')
+gx.onchange=function(){
+    var pic=["url('./images/tiling.png')","url('./images/tiling.png')","url('./images/go9.png')"]
+    document.querySelector('div.disc').style.backgroundImage=pic[~~gx.value]
+}
 ////////////////// resetgame //////////////////
-playerList = [AIPlayer,GreedyRandomAI,LocalPlayer,NetworkPlayer]
+playerList = [MCAI,AIPlayer,LocalPlayer,NetworkPlayer]
 playerIndex=~~changePlayerSelect.value
 function resetgame(_first2){
     first2=_first2?1:0; // 此处的first2是player2的先后手, 先手对应的是0
