@@ -260,14 +260,15 @@ AIPlayer.prototype.remove=function(){
     this.emitWin=null
 }
 AIPlayer.prototype.where=function(){
-    var gameData=this.gameData
-    for(var jj=0;jj<2*gameData.ysize+1;jj++){
-        for(var ii=0;ii<2*gameData.xsize+1;ii++){
-            if([gameData.EDGE_NOW,gameData.EDGE_NOT,gameData.EDGE_WILL].indexOf(gameData.xy(ii,jj))===-1){
-                return {'x':ii,'y':jj};
-            }
+    var game=this.game
+    var choice=[];
+    for(var ii=game.map.length-1;ii>0;ii--){
+        if([game.BLANK,game.CRITICAL].indexOf(game.xy(ii))!==-1){
+            // return ii;
+            choice.push(ii);
         }
     }
+    return choice[~~((choice.length-1)*Math.random())]
 }
 AIPlayer.prototype.changeTurn=function(){
     var thisplayer = this
@@ -275,7 +276,7 @@ AIPlayer.prototype.changeTurn=function(){
     var where = this.where()
     setTimeout(function(){
         thisplayer.game.lock=0
-        thisplayer.game.putxy(where.x,where.y)
+        thisplayer.game.putxy(where)
     },250)
 }
 AIPlayer.prototype.continueTurn=function(){
@@ -284,7 +285,7 @@ AIPlayer.prototype.continueTurn=function(){
     var where = this.where()
     setTimeout(function(){
         thisplayer.game.lock=0
-        thisplayer.game.putxy(where.x,where.y)
+        thisplayer.game.putxy(where)
     },120)
 }
 
@@ -296,56 +297,15 @@ GreedyRandomAI=function(){
 GreedyRandomAI.prototype = Object.create(AIPlayer.prototype)
 GreedyRandomAI.prototype.constructor = GreedyRandomAI
 
-GreedyRandomAI.prototype.rand=function(n){
-    if(!n)return Math.random();
-    return ~~(n*Math.random())
-}
-
-GreedyRandomAI.prototype.getRandWhere=function(number){
-    var gameData=this.gameData
-    var count=gameData.edgeCount[number];
-    if(!count)return 'not exist';
-    var index = this.rand(count)
-    // TODO: 修改实现, 改为随机起点找第一个, 或者更快的实现
-    for(var jj=0;jj<2*gameData.ysize+1;jj++){
-        for(var ii=0;ii<2*gameData.xsize+1;ii++){
-            if(gameData.xy(ii,jj)===number){
-                if(!index)return {'x':ii,'y':jj};
-                index--;
-            }
+GreedyRandomAI.prototype.where=function(){
+    var game=this.game
+    var choice=[];
+    for(var ii=game.map.length-1;ii>0;ii--){
+        if([game.BLANK,game.CRITICAL].indexOf(game.xy(ii))!==-1){
+            choice.push(ii);
+            if(game.xy(ii)===game.CRITICAL)return ii;
         }
     }
-    return 'error'
+    return choice[~~((choice.length-1)*Math.random())]
 }
 
-GreedyRandomAI.prototype.tryKeepOffensive=function(){
-    // Greedy不维护先手
-    return this.getRandWhere(this.gameData.EDGE_NOW)
-}
-
-GreedyRandomAI.prototype.where=function(){
-    var gameData=this.gameData
-    var number = gameData.EDGE_NOW
-    if(gameData.edgeCount[gameData.EDGE_NOW]){number = gameData.EDGE_NOW} //有得分块
-    else if(gameData.edgeCount[gameData.EDGE_NOT]){number = gameData.EDGE_NOT} //无法得分且无需让分
-    else {number = gameData.EDGE_WILL} //需让分
-    //
-    if(number!==gameData.EDGE_WILL){
-        if(number===gameData.EDGE_NOW && gameData.edgeCount[gameData.EDGE_NOT]===0){var where = this.tryKeepOffensive()}
-        else {var where = this.getRandWhere(number)}
-    } else {
-        var where = gameData.getOneEdgeFromRegion(gameData.getMinConnectedRegion())
-    }
-    return where
-}
-
-////////////////// OffensiveKeeperAI //////////////////
-OffensiveKeeperAI=function(){
-    GreedyRandomAI.call(this)
-    return this
-}
-OffensiveKeeperAI.prototype = Object.create(GreedyRandomAI.prototype)
-OffensiveKeeperAI.prototype.constructor = OffensiveKeeperAI
-
-OffensiveKeeperAI.prototype.tryKeepOffensive=function(){
-}
