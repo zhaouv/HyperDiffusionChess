@@ -325,11 +325,14 @@ MCAI.prototype.where=function(){
             choice.push(ii);
         }
     }
-    if (choice.length>=20) {
+    if (choice.length>=40) {
         return choice[~~(choice.length*Math.random())]
+    }
+    if (choice.length>=20) {
+        return this.gameData.choiceByRandomWinRate(12)
     }
     if (choice.length>=10) {
         return this.gameData.choiceByRandomWinRate(50)
     }
-    return this.gameData.choiceByRandomWinRate(100)
+    return this.gameData.choiceByRandomWinRate(200)
 }

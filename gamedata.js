@@ -73,6 +73,7 @@ GameData.prototype.choiceByRandomWinRate=function(count){
     var maxIndex = rates.indexOf(Math.max(...rates));
     this.choice=choice
     this.rates=rates
+    console.log(rates[maxIndex])
     return choice[maxIndex]
     // new GameData().fromGame(gameview.game).choiceByRandomWinRate()
 }
