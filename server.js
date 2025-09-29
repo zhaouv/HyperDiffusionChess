@@ -139,6 +139,7 @@ hyperDiffusion.on('connection', function (socket) {
             curr.first = temp.id;
             curr.second = socket.id;
             curr.board = [];
+            curr.data = data;
 
             return;
         }
