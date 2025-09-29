@@ -159,6 +159,7 @@ NetworkPlayer.prototype.initSocket=function(){
             thisplayer.game.setSize(data[0],data[1])
         }
         thisplayer.room=room
+        printtip("已分配到 "+room+"。")
         if (data[2]>=0) {
             setTimeout(function(){
                 //重置游戏
