@@ -104,23 +104,23 @@ var getTime = function() {
 // const towers = io.of('/hyperDiffusion');
 const towers = io.of(/^\/.+$/);
 towers.on('connection', function (socket) {
-    const hyperDiffusion = socket.nsp;
-    var printlog = (msg)=>console.log(hyperDiffusion.name.slice(1)+' '+msg);
+    const tower = socket.nsp;
+    var printlog = (msg)=>console.log(tower.name.slice(1)+' '+msg);
     var wait = function (socket, board) { // board [playerId, ...]
-        if (!isset(hyperDiffusion.adapter.rooms['waiting'])) {
+        if (!isset(tower.adapter.rooms['waiting'])) {
             printlog(getTime()+'Waiting '+JSON.stringify(board)+' '+socket.id);
             socket.join('waiting');
-            hyperDiffusion.adapter.rooms['waiting'].board=board
+            tower.adapter.rooms['waiting'].board=board
             return;
         }
 
-        var room = hyperDiffusion.adapter.rooms['waiting'];
+        var room = tower.adapter.rooms['waiting'];
 
         if (room.length > 0) {
-            var temp = hyperDiffusion.connected[Object.keys(room.sockets)[0]];
+            var temp = tower.connected[Object.keys(room.sockets)[0]];
 
             var id = ~~(Math.random() * 2147483647) + 100;
-            while (isset(hyperDiffusion.adapter.rooms[id]) && hyperDiffusion.adapter.rooms[id].length > 0) {
+            while (isset(tower.adapter.rooms[id]) && tower.adapter.rooms[id].length > 0) {
                 id = ~~(Math.random() * 2147483647) + 100;
             }
 
@@ -136,7 +136,7 @@ towers.on('connection', function (socket) {
             socket.emit('start', id, board2);
             printlog(getTime()+id+" start!");
 
-            var curr = hyperDiffusion.adapter.rooms[id];
+            var curr = tower.adapter.rooms[id];
             
             curr.first = temp.id;
             curr.second = socket.id;
@@ -154,12 +154,12 @@ towers.on('connection', function (socket) {
             wait(socket, board);
             return;
         }
-        var room = hyperDiffusion.adapter.rooms[id];
+        var room = tower.adapter.rooms[id];
         if (isset(room) && room.length >= 2) {
-            // hyperDiffusion.in(socket.id).emit('error', '房间已满');
+            // tower.in(socket.id).emit('error', '房间已满');
             printlog(getTime()+id+" visitor: "+socket.id);
             socket.join(id);
-            hyperDiffusion.in(id).emit('msg', [2,0,"目前观战人数："+(room.length-2)]);
+            tower.in(id).emit('msg', [2,0,"目前观战人数："+(room.length-2)]);
             board=room.board
             var board3=[-1,...board.slice(1)];
             socket.emit('start', id, board3);
@@ -168,15 +168,15 @@ towers.on('connection', function (socket) {
         }
         var first = null;
         if (isset(room) && room.length == 1) {
-            first = hyperDiffusion.connected[Object.keys(room.sockets)[0]];
+            first = tower.connected[Object.keys(room.sockets)[0]];
         }
         socket.join(id);
         if (!isset(room)){
-            hyperDiffusion.adapter.rooms[id].board=board
+            tower.adapter.rooms[id].board=board
         }
         printlog(getTime()+id+" player: "+socket.id);
         if (isset(first)) {
-            room = hyperDiffusion.adapter.rooms[id];
+            room = tower.adapter.rooms[id];
             board=room.board
             first.emit('start', id, board);
             var board2=[1-board[0],...board.slice(1)];
@@ -189,9 +189,9 @@ towers.on('connection', function (socket) {
     });
 
     socket.on('ready', function (id, condition) { 
-        var room = hyperDiffusion.adapter.rooms[id];
+        var room = tower.adapter.rooms[id];
         if (!isset(room)) {
-            hyperDiffusion.in(id).emit('error', '未知错误');
+            tower.in(id).emit('error', '未知错误');
             return;
         }
         if (!isset(room.count)) room.count = 0;
@@ -201,41 +201,41 @@ towers.on('connection', function (socket) {
         if (room.count == 2) {
             delete room.count;
             room.position = [room.condition];
-            hyperDiffusion.in(id).emit('ready', room.condition);
-            hyperDiffusion.in(id).emit('position', room.position);
+            tower.in(id).emit('ready', room.condition);
+            tower.in(id).emit('position', room.position);
         }
     })
 
     socket.on('put', function (id, square) {
         printlog(getTime()+id+": "+square);
-        hyperDiffusion.in(id).emit('put', square);
+        tower.in(id).emit('put', square);
 
-        var room = hyperDiffusion.adapter.rooms[id];
+        var room = tower.adapter.rooms[id];
         if (!isset(room) || !isset(room.position)) return;
         room.position.push(square);
-        hyperDiffusion.in(id).emit('position', room.position);
+        tower.in(id).emit('position', room.position);
     })
 
     socket.on('msg', function (id, data) {
         printlog(getTime()+id+": "+data);
-        hyperDiffusion.in(id).emit('msg', data);
+        tower.in(id).emit('msg', data);
     })
 
     socket.on('disconnecting', function () {
         Object.keys(socket.rooms).forEach(function (id) {
-            // hyperDiffusion.in(id).emit('error', '对方断开了链接');
-            var room = hyperDiffusion.adapter.rooms[id];
+            // tower.in(id).emit('error', '对方断开了链接');
+            var room = tower.adapter.rooms[id];
             if (id!=socket.id)
                 printlog(getTime()+id+" disconnect: "+socket.id);
             if (isset(room) && isset(room.first) && isset(room.second)) {
                 if (room.first==socket.id || room.second==socket.id) {
-                    hyperDiffusion.in(id).emit('error', '对方断开了连接');
+                    tower.in(id).emit('error', '对方断开了连接');
                     return;
                 }
-                hyperDiffusion.in(id).emit('msg', [2,0,"目前观战人数："+(hyperDiffusion.adapter.rooms[id].length-3)]);
+                tower.in(id).emit('msg', [2,0,"目前观战人数："+(tower.adapter.rooms[id].length-3)]);
                 return;
             }
-            hyperDiffusion.in(id).emit('error', '对方断开了连接');
+            tower.in(id).emit('error', '对方断开了连接');
         });
     })
 });
